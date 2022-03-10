@@ -91,7 +91,7 @@ You may often have fractions within fractions:
 
 
 ````
-$$\frac{(a + b)^2}{\frac{1}{2}a + \frac{1}{2}}$$
+$$\frac{(a + b)^2}{\Big(\frac{1}{2}a + \frac{1}{2}b\Big)}$$
 ````
 
 $$\frac{(a + b)^2}{\Big(\frac{1}{2}a + \frac{1}{2}b\Big)}$$
@@ -148,7 +148,7 @@ Summations are very common, and also very easy making use of the `\sum` keyword 
 
 
 ````
-$$\text{mean value} = \frac{\sum_{i=1}^{n} x_i}{n}$$
+$$\text{mean value} = \sum_{i=1}^{n}\frac{x_i}{n}$$
 ````
 
 
@@ -289,6 +289,6 @@ That should be more than enough to get you started. Here are a couple of resourc
 
 - [List of LaTeX mathematical symbols](https://oeis.org/wiki/List_of_LaTeX_mathematical_symbols)
 
-- [This detailed LateX math] guide(http://tug.ctan.org/info/short-math-guide/short-math-guide.pdf)
+- [This detailed LateX math guide](http://tug.ctan.org/info/short-math-guide/short-math-guide.pdf)
 
 

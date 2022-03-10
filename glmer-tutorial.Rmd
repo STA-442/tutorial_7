@@ -232,7 +232,7 @@ Scenario 6.
 - Both the home team lead and foul differential increase.
 
 
-Scenario 6.
+Scenario 7.
 
 - Both the home team lead and foul differential decrease
 
@@ -304,7 +304,7 @@ scenarios <- scenario_1 %>%
   labs(x = "Time remaining in the first half",
        y = "Probability that the next foul is on the home team")
 
-
+print(scenarios)
 
 ```
 
@@ -464,7 +464,7 @@ That is our intercept has some population mean and then variance from the game, 
 
 
 
-$$a_j \sim N(0, \sigma_\mu^2)$$
+$$u_j \sim N(0, \sigma_\mu^2)$$
   
 $$v_h \sim N(0, \sigma_v^2)$$
   
@@ -496,7 +496,7 @@ Our model is summarized as follows
 
 - $\sigma_u = 0.4143$ the sd in intercepts from game to game
 - $\sigma_v = 0.2609$ the sd in intercepts from among different home teams
-- $\sigma_w = 0.1524 $ the sd in intercepts from among different visiting teams
+- $\sigma_w = 0.1524$ the sd in intercepts from among different visiting teams
 
 
 What can we say with these estimates?
@@ -530,7 +530,7 @@ There is a significant negative effect of foul differential—a strong tendency 
 Important covariates to control for (because of their effects on the odds of a home foul) include score differential, whether the home team held the lead, time left in the first half, and the type of foul called.
 
 
-- $\alpha_mu$ = -0.246471, exp(-0.246471) = 0.781. The odds of a found on the home team is reduced by 0.781 at the end of the first half when the score is tied. 
+- $\alpha_\mu$ = -0.246471, exp(-0.246471) = 0.781. The odds of a found on the home team is reduced by 0.781 at the end of the first half when the score is tied. 
 
 
 - $\beta_{\text{foul_diff}}$ = -0.171459, exp(-0.171459) = 0.842.  As the fould differential increases the odds of a home team foul are reduced by 15.8%
