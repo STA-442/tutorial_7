@@ -1,0 +1,571 @@
+---
+title: "Generalized Linear Multilevel Models"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+
+
+
+## Introduction
+
+We are going to look at the effect of referees in NCAA (american college) basketball games. There are studies that have shown that referees will attempt to even out calls as a game progresses. That is, they will make up calls so that the number of fouls between teams tends to be even. 
+
+- Do NCAA basketball referees “even out”  in 2010. There is evidence that they did in 2005?
+  
+  
+- How do results change if our analysis accounts for the correlation in calls from the same game and the same teams?
+  
+  
+- Does the effect of evening out calls vary by foul type
+- that is, does a ref have more control in certain situations
+- There are 3 types of fouls: offensive, personal and shooting
+
+- Do referees have an effect on the score of a game?
+  
+  
+## The data
+  
+The data set contain every fould called in the first half of 340 games called in the NCAA in 2009-2010. The data is found in the `/data` folder. 
+
+
+```{r}
+library(tidyverse)
+library(broom)
+library(lme4)
+
+
+basketball <- readr::read_csv('data/basketball.csv') %>% 
+  janitor::clean_names()
+
+```
+
+
+```{r}
+basketball %>% 
+  glimpse()
+
+```
+
+The outcome variable for this analysis will be foul_home (whether or not the next foul was called on the home team).
+
+Our hypothesis for this analysis is that a foul called on the home team will be related to the current foul differential in the game. If more fouls have been called on the visiting team than the home team, then the next call is more likely to be a foul on the home team. Conversely, if there are currently more fouls on the home team, then the next foul called is less likely to be a home team foul.
+
+
+
+## Data exploration
+
+```{r}
+basketball %>% 
+  head(20) %>% 
+  DT::datatable(caption = "first 20 rows of the basketball dataset",
+                options = list(scrollX = T))
+
+
+# The dimensions
+dim(basketball)
+```
+
+We have 19 variables in the dataset. They are described as follows:
+  
+  
+  - `game` = unique game id
+- `date` = date game was played
+- `visitor` = visiting team 
+- `hometeam` = home team 
+- `foul_num` = cumulative foul number within game
+- `foul_home` = indicator if foul was called on the home team
+- `foul_vis` = indicator if foul was called on the visiting team
+- `foul_diff` = the difference in fouls before the current foul was called (`home` -  `visitor`)
+- `score_diff` = the score differential before the current foul was called (`home` -  `visitor`)
+- `lead_vis` = indicator if visiting team has the lead
+- `lead_home` = indicator if home team has the lead
+- `previous_foul_home` = indicator if previous foul was called on the home team
+- `previous_foul_vis` = indicator if previous foul was called on the visiting team
+- `foul_type` = categorical variable if current foul was offensive, personal, or - shooting
+- `shooting` = indicator if foul was a shooting foul
+- `personal` = indicator if foul was a personal foul
+- `offensive` = indicator if foul was an offensive foul
+- `time` = number of minutes left in the first half when foul called
+
+
+```{r}
+# number of games in the data
+n_distinct(basketball$game)
+
+basketball %>% 
+  count(game) %>% 
+  ggplot(aes(game, n)) +
+  geom_bar(stat='identity') +
+  labs(title = 'number of observations per game',
+       y = 'Observations') +
+  theme_bw()
+
+```
+
+
+
+```{r}
+# number of games in the data
+n_distinct(basketball$game)
+
+basketball %>% 
+  ggplot(aes(time))+ 
+  geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  geom_density() +
+  labs(title = "Distribution of time left in first half",
+       x = "Time Left in First Half")
+
+basketball %>% 
+  ggplot(aes(foul_diff))+ 
+  geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  geom_density() +
+  labs(title = "Distribution of foul difference",
+       x = "Foul Difference")
+
+basketball %>% 
+  ggplot(aes(score_diff))+ 
+  geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  geom_density() +
+  labs(title = "Distribution of Score differential",
+       x = "Score differential  (home - visitor)")
+
+
+basketball %>% 
+  ggplot(aes(factor(foul_home), score_diff))+ 
+  geom_boxplot() +
+  labs(title = "Next foul on home team",
+       x = "Score differential (home - visitor)")
+
+
+basketball %>% 
+  ggplot(aes(factor(foul_home), foul_diff))+ 
+  geom_boxplot() +
+  labs(title = "Next foul on home team",
+       x = "Foul differential (home - visitor)")
+
+basketball %>% 
+  ggplot(aes(score_diff, foul_diff, color = factor(foul_home)))+ 
+  geom_jitter() +
+  labs(title = "Score differential vs Foul differential",
+       subtitle = "coloured by whether or not the next fould is on home team",
+       y = "Foul differential (home - visitor)",
+       y = "Score differential (home - visitor)") +
+  geom_smooth(method="lm")
+
+```
+
+
+
+
+We plan to use the following categorical variables as level 1 inputs:
+  
+  - Whether the home team has the lead
+- Type of foul (offensive, personal, shooting)
+
+```{r}
+
+basketball %>% 
+  group_by(foul_home) %>% 
+  summarize(shooting_fouls = sum(foul_type == "Shooting")/n(),
+            personal_fouls = sum(foul_type == "Shooting")/n(),
+            offensive_fouls = sum(foul_type == "Shooting")/n(),
+            home_lead_prop = sum(lead_home)/n())
+```
+
+
+## Model building
+
+We start by building a logistic regression model assuming that all of the 4972 fouls are independent. That is, no correlation for game effects.
+
+
+```{r}
+mod_glm = glm(foul_home ~ foul_diff + score_diff + lead_home + 
+                time + foul_diff:time + lead_home:time, 
+              family = binomial, data = basketball)
+
+summary(mod_glm)
+
+sjPlot::tab_model(mod_glm)
+
+```
+
+
+Let's plot out the predictions for this model under a few different scenarios:
+
+
+
+#### Scenarios
+
+
+Scenario 1.
+
+- From the start of the half to the end of the half, with the score being equal and no 
+
+
+Scenario 2.
+
+- From the start of the half to the end of the half, where the home team lead monotonically increases
+
+
+Scenario 3.
+
+- From the start of the half to the end of the half, where the home team lead monotonically decreases
+
+Scenario 4.
+
+- From the start of the half to the end of the half, where the score differential remains at 0, but the foul differential increases in the home team favour monotonically. 
+
+Scenario 5.
+
+- From the start of the half to the end of the half, where the score differential remains at 0, byt the foul differential increases in the visit team favour monotonically. 
+
+Scenario 6.
+
+- Both the home team lead and foul differential increase.
+
+
+Scenario 6.
+
+- Both the home team lead and foul differential decrease
+
+
+
+```{r}
+
+scenario_1 <- data.frame(time = seq(20, 0, length.out = 100),
+                       foul_diff = rep(0, 100),
+                       score_diff = rep(0, 100),
+                       lead_home = rep(0, 100),
+                       scenario = "Scenario 1") %>% 
+  mutate(probability = predict(mod_glm, newdata = ., type = "response"))
+
+
+scenario_2 <- data.frame(time = seq(20, 0, length.out = 100),
+                       foul_diff = rep(0, 100),
+                       score_diff = round(seq(0, 20, length.out = 100)),
+                       scenario = "Scenario 2") %>% 
+  mutate(lead_home = ifelse(score_diff > 1, 1, 0)) %>% 
+  mutate(probability = predict(mod_glm, newdata = ., type = "response"))
+
+scenario_3 <- data.frame(time = seq(20, 0, length.out = 100),
+                       foul_diff = rep(0, 100),
+                       score_diff = round(seq(0, -20, length.out = 100)),
+                       scenario = "Scenario 3") %>% 
+  mutate(lead_home = ifelse(score_diff > 1, 1, 0)) %>% 
+  mutate(probability = predict(mod_glm, newdata = ., type = "response"))
+
+
+scenario_4 <- data.frame(time = seq(20, 0, length.out = 100),
+                       foul_diff = round(seq(0, 20, length.out = 100)),
+                       score_diff = rep(0, 100),
+                       scenario = "Scenario 4") %>% 
+  mutate(lead_home = ifelse(score_diff > 1, 1, 0)) %>% 
+  mutate(probability = predict(mod_glm, newdata = ., type = "response"))
+
+
+scenario_5 <- data.frame(time = seq(20, 0, length.out = 100),
+                       foul_diff = round(seq(0, -20, length.out = 100)),
+                       score_diff = rep(0, 100),
+                       scenario = "Scenario 5") %>% 
+  mutate(lead_home = ifelse(score_diff > 1, 1, 0)) %>% 
+  mutate(probability = predict(mod_glm, newdata = ., type = "response"))
+
+scenario_6 <- data.frame(time = seq(20, 0, length.out = 100),
+                       foul_diff = round(seq(0, 20, length.out = 100)),
+                       score_diff = round(seq(0, 20, length.out = 100)),
+                       scenario = "Scenario 6") %>% 
+  mutate(lead_home = ifelse(score_diff > 1, 1, 0)) %>% 
+  mutate(probability = predict(mod_glm, newdata = ., type = "response"))
+
+scenario_7 <- data.frame(time = seq(20, 0, length.out = 100),
+                       foul_diff = round(seq(0, -20, length.out = 100)),
+                       score_diff = round(seq(0, -20, length.out = 100)),
+                       scenario = "Scenario 7") %>% 
+  mutate(lead_home = ifelse(score_diff > 1, 1, 0)) %>% 
+  mutate(probability = predict(mod_glm, newdata = ., type = "response"))
+
+scenarios <- scenario_1 %>% 
+  bind_rows(scenario_2) %>% 
+  bind_rows(scenario_3) %>% 
+  bind_rows(scenario_4) %>% 
+  bind_rows(scenario_5) %>% 
+  bind_rows(scenario_6) %>% 
+  bind_rows(scenario_7) %>% 
+  ggplot(aes(time, probability, color = scenario)) +
+  geom_line() +
+  labs(x = "Time remaining in the first half",
+       y = "Probability that the next foul is on the home team")
+
+
+
+```
+
+
+This model would apply to every team and every game. We can fit some no pooling models for each game as we do below:
+
+
+## Separate regression
+
+We could fit separate logistic regressions to each game from the data as
+
+
+$$log\Big(\frac{p_{game_i}}{1 - p_{game_i}}\Big) = \alpha_{game_i} + \beta_{game_i}\times\text{foul_diff}$$
+  
+  
+```{r, message=F, warning=F}
+
+grouped_regression <- basketball %>%
+  group_by(game) %>% 
+  nest() %>% 
+  mutate(model = map(data, ~glm(foul_home ~ foul_diff, data = .x,
+                                family = binomial) %>% 
+                       tidy)) %>% 
+  unnest(model)
+
+grouped_regression %>% 
+  filter(term == "(Intercept)") %>% 
+  ggplot(aes(estimate)) +
+  geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  labs(title = "Estimated intercepts from each game") +
+  xlim(c(-10,10))
+
+
+grouped_regression %>% 
+  filter(term == "foul_diff") %>% 
+  ggplot(aes(estimate)) +
+  geom_histogram(aes(y=..density..), colour="black", fill="white") +
+  labs(title = "Estimated slope from each game") +
+  xlim(c(-5,1))
+grouped_regression %>% 
+  filter(term == "(Intercept)") %>% 
+  ungroup() %>% 
+  summarize(q10 = quantile(estimate, .1),
+            q25 = quantile(estimate, .25),
+            q50 = quantile(estimate, .5),
+            q75 = quantile(estimate, .75),
+            q90 = quantile(estimate, .9))
+
+grouped_regression %>% 
+  filter(term == "foul_diff") %>% 
+  ungroup() %>% 
+  summarize(q10 = quantile(estimate, .1),
+            q25 = quantile(estimate, .25),
+            q50 = quantile(estimate, .5),
+            q75 = quantile(estimate, .75),
+            q90 = quantile(estimate, .9))
+
+
+
+```
+
+
+Most intercepts are less than zero meaning that if the foul differential is 0 (same number of fouls on the home and away team), the likelihood is that the next foul will be on the visiting team
+
+
+
+## Multilevel Approach
+
+We hypothesize the following multilevel model:
+  
+Level one:
+  
+$Pr(\text{foul_home} = 1) = \text{logit}^{-1}(\alpha_{j[i]} +\beta_{j[i]}\times \text{foul_diff}_i )$$
+  
+Level two:
+  
+$$\binom{\alpha_j}{\beta_j} \sim N\Big(\binom{0}{0}, 
+\begin{pmatrix}                               
+\sigma_{\alpha}^2 & \rho\sigma_{\alpha}\sigma_{\beta} \\
+\sigma_{\alpha}^2 & \sigma_{\beta}^2
+\end{pmatrix}\Big)$$
+  
+  
+Below we fit this model with `glmer()`. This is the multilevel model equivalent of `glm()`. Specifying the random components of the model are the same with `glmer()` as it is with the `lmer` function we have used so far, and specifying the distribution assumptions is the as it is with the `glm()` function. 
+
+
+
+```{r}
+mlm_1 <- glmer(foul_home ~ foul_diff + (foul_diff|game),
+               family = binomial, data = basketball)
+summary(mlm_1)
+
+
+complete_pool <- glm(foul_home ~ foul_diff, family = binomial, 
+                     data = basketball)
+summary(complete_pool)
+
+```
+
+Notice that the fixed effect of foul differential is much larger here than it was for the complete pooling model. 
+
+
+## Crossed random effect model
+
+Below we measure the average foul calls for home and visit teams by team name.
+
+```{r}
+
+basketball %>% 
+  group_by(hometeam, game) %>% 
+  summarize(home_fouls = sum(foul_home),
+            visit_fouls = sum(foul_vis)) %>% 
+  group_by(hometeam) %>% 
+  summarize(mean_home_fouls = mean(home_fouls),
+            visit_home_fouls = mean(visit_fouls)) %>% 
+  ungroup() %>% 
+  mutate(diff = mean_home_fouls - visit_home_fouls) %>% 
+  arrange((diff))
+
+basketball %>% 
+  group_by(hometeam, game) %>% 
+  summarize(home_fouls = sum(foul_home),
+            visit_fouls = sum(foul_vis)) %>% 
+  group_by(hometeam) %>% 
+  summarize(mean_home_fouls = mean(home_fouls),
+            visit_home_fouls = mean(visit_fouls)) %>% 
+  ungroup() %>% 
+  mutate(diff = mean_home_fouls - visit_home_fouls) %>% 
+  ggplot(., aes(diff)) +
+  geom_histogram()
+
+
+```
+
+It appears there might be information by the team name. We could add these into our glm model, but this would involve adding 38 indicators for the home team and 38 indicators for the visiting team. 
+
+By adding these indicator variables we would complicate our model despite the fact that we’re not very interested in specific coefficient estimates for each team—we just want to control for teams playing to draw stronger conclusions about referee bias.
+
+
+We will add level two crossed effects for the home and visiting team.
+
+We will fit a random intercept model with crossed effects by game and team
+
+
+Our model is as follows:
+  
+Level one:
+  
+$$Pr(\text{foul_home} = 1) = \text{logit}^{-1}(\alpha_{j[i]} +\beta_{j[i]}\times \text{foul_diff}_i )$$
+  
+Level two:
+  
+$\alpha_j = \alpha_\mu + u_i + v_h + w_g$
+  
+That is our intercept has some population mean and then variance from the game, the home team, and the visiting team. We assume the following
+
+
+
+
+$$a_j \sim N(0, \sigma_\mu^2)$$
+  
+$$v_h \sim N(0, \sigma_v^2)$$
+  
+$$w_g \sim N(0, \sigma_w^2)$$
+  
+Where
+
+- $\alpha_\mu$ is the population log odds across all games and fouls
+- $u$ is the effect of the game
+- $v$ is the effect of the home team and 
+- $w$ is the effecct of the away team
+
+
+```{r}
+mlm_2 <- glmer(foul_home ~ foul_diff + (1|game) + 
+                 (1|hometeam) + (1|visitor), 
+               family = binomial, data = basketball)
+summary(mlm_2)
+```
+
+
+Our model is summarized as follows
+
+
+- $\alpha_\mu = -0.18780$. That is the mean log odds of a home foul at the point where total fouls are equal between teams. THe odds that the next foul is called on the home team at this point is reduced by about 18%.
+
+- $\beta = -0.26385$: log odds of a home team foul for each increase in the foul differential. Each increase in the differential reduces the odds of a home team foul by ($exp(-0.26385) = -0.26385$) about 24%.
+
+
+- $\sigma_u = 0.4143$ the sd in intercepts from game to game
+- $\sigma_v = 0.2609$ the sd in intercepts from among different home teams
+- $\sigma_w = 0.1524 $ the sd in intercepts from among different visiting teams
+
+
+What can we say with these estimates?
+  
+- $\sigma_u^2/(\sigma_u^2 + \sigma_v^2 + \sigma_w^2)$ 0.1716/(0.1716 + 0.06809 + 0.02323) = 0.65, so 65% of the variance in the intercept is explained by game to game variance.
+
+- $\sigma_v^2/(\sigma_u^2 + \sigma_v^2 + \sigma_w^2)$ 0.06809/(0.1716 + 0.06809 + 0.02323) = 0.26, so 26% of the variance in the intercept is explained by variance between home teams.
+
+
+- $\sigma_w^2/(\sigma_u^2 + \sigma_v^2 + \sigma_w^2)$ 0.02323/(0.1716 + 0.06809 + 0.02323) = 0.09, so 9% of the variance in the intercept is explained by variance between visiting teams.
+
+
+## Final model
+
+
+```{r, warning=F, message=F}
+final_model <- glmer(foul_home ~ foul_diff + score_diff + 
+                       lead_home + time + offensive + personal + 
+                       foul_diff:offensive + foul_diff:personal + 
+                       foul_diff:time + lead_home:time + (1|game) + 
+                       (1|hometeam) + (1|visitor),
+                     family = binomial, data = basketball)
+
+summary(final_model)
+
+```
+
+
+There is a significant negative effect of foul differential—a strong tendency for referees to even out foul calls when one team starts amassing more fouls than the other.
+
+Important covariates to control for (because of their effects on the odds of a home foul) include score differential, whether the home team held the lead, time left in the first half, and the type of foul called.
+
+
+- $\alpha_mu$ = -0.246471, exp(-0.246471) = 0.781. The odds of a found on the home team is reduced by 0.781 at the end of the first half when the score is tied. 
+
+
+- $\beta_{\text{foul_diff}}$ = -0.171459, exp(-0.171459) = 0.842.  As the fould differential increases the odds of a home team foul are reduced by 15.8%
+
+- $\beta_{\text{score_diff}}$ = 0.033521, exp(0.033521) = 1.034.  As the fould differential increases the odds of a home team foul are increased by 3.4%, after controlling for foul differential, type of foul, whether or not the home team has the lead, and time remaining in the half.
+
+
+- $\beta_{\text{foul_diff:offensive}}$ = -0.103579, exp(-0.103579) = 0.902.  The effect of foul differenial increases by roughly 10% if the foul is an offensive foul. The effect is -0.171459 -0.103579 = -0.275038
+
+- $\beta_{\text{foul_diff:personal}}$ = -0.055643, exp(-0.055643) = 0.946.  The effect of foul differenial increases by roughly 5% if the foul is an personal foul compared to a shooting foul. The effect is -0.171459 -0.055643 = -0.227102
+
+- $\beta_{\text{time}}$ = -0.008747, exp(-0.008747) =0. 991  The effect of foul differenial increases by roughly 1% for each extra minute that is remaining in the half, after controlling for foul differential, score differential, whether the home team has the lead, and type of foul. The tendency to even out foul calls is stronger earlier in the game. 
+
+
+We can plot these fixed effects as follows:
+  
+  
+```{r}
+library(sjPlot)
+plot_model(final_model)
+
+```
+
+```{r}
+
+p <- plot_model(final_model, type = "re", facet.grid=FALSE) 
+
+# random effect by game
+p[[1]]
+
+# random effect by home team
+p[[2]]
+
+# random effect by visiting team
+p[[3]]
+```
+
+
