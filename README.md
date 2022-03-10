@@ -37,7 +37,7 @@ is not valid while this expression
 
     $x + y$
 
-is valid. In this expression: `$x + y`, Rmarkdown will enter math mode
+is valid. In this expression: `$x + y$`, Rmarkdown will enter math mode
 and display this equation will all that stylings LateX users are
 accustomed to. The expression wil render as *x* + *y*.
 
@@ -50,6 +50,7 @@ If you want to write a displayed equation, which renders on it’s own
 line (and centered), you use 2 dollar signs on either side of your text.
 For example, using our example from the previous paragraph,
 `$$y = \alpha + \beta\times x$$` will render as
+
 *y* = *α* + *β* × *x*
 
 This is helpful when we have more complicated equations that need be
@@ -79,11 +80,12 @@ and so on.
 #### Fractions
 
 Writing fractions is also pretty straight forward. We just use
-`$\frac{}{}` Where whatever we put in between the first set of brackets
+`$\frac{}{}$` Where whatever we put in between the first set of brackets
 ends up in the numerator while the stuff we put in the second bracket
 goes to the denominator.
 
 For example
+
 
     $$\frac{(a + b)^2}{b^2}$$
 

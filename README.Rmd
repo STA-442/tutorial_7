@@ -48,12 +48,15 @@ $x + y$
 
 ````
 
-is valid. In this expression: `$x + y`, Rmarkdown will enter math mode and display this equation will all that stylings LateX users are accustomed to. The expression wil render as $x + y$. 
+is valid. In this expression: `$x + y$`, Rmarkdown will enter math mode and display this equation will all that stylings LateX users are accustomed to. The expression wil render as $x + y$. 
 
 
 Using a single set of dollar signs to enclose an equation is used for inline styling. That is when you want to have an equation written as part of a paragraph, like this one here $y = \alpha + \beta\times x$ (which was written as `$y = \alpha + \beta\times x$`).
 
-If you want to write a displayed equation, which renders on it's own line (and centered), you use 2 dollar signs on either side of your text. For example, using our example from the previous paragraph, `$$y = \alpha + \beta\times x$$` will render as  $$y = \alpha + \beta\times x$$
+If you want to write a displayed equation, which renders on it's own line (and centered), you use 2 dollar signs on either side of your text. For example, using our example from the previous paragraph, `$$y = \alpha + \beta\times x$$` will render as  
+
+
+$$y = \alpha + \beta\times x$$
 
 
 This is helpful when we have more complicated equations that need be positioned prominently or need a little more space to be displayed properly. 
@@ -81,12 +84,14 @@ and so on.
 
 #### Fractions
 
-Writing fractions is also pretty straight forward. We just use `$\frac{}{}` Where whatever we put in between the first set of brackets ends up in the numerator while the stuff we put in the second bracket goes to the denominator.
+Writing fractions is also pretty straight forward. We just use `$\frac{}{}$` Where whatever we put in between the first set of brackets ends up in the numerator while the stuff we put in the second bracket goes to the denominator.
 
 For example
 
 ````
+
 $$\frac{(a + b)^2}{b^2}$$
+
 ````
 
 will render as:

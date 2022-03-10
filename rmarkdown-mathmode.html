@@ -153,9 +153,10 @@
 <p>is not valid while this expression</p>
 <pre><code>$x + y$
 </code></pre>
-<p>is valid. In this expression: <code>$x + y</code>, Rmarkdown will enter math mode and display this equation will all that stylings LateX users are accustomed to. The expression wil render as <span class="math inline">\(x + y\)</span>.</p>
+<p>is valid. In this expression: <code>$x + y$</code>, Rmarkdown will enter math mode and display this equation will all that stylings LateX users are accustomed to. The expression wil render as <span class="math inline">\(x + y\)</span>.</p>
 <p>Using a single set of dollar signs to enclose an equation is used for inline styling. That is when you want to have an equation written as part of a paragraph, like this one here <span class="math inline">\(y = \alpha + \beta\times x\)</span> (which was written as <code>$y = \alpha + \beta\times x$</code>).</p>
-<p>If you want to write a displayed equation, which renders on it’s own line (and centered), you use 2 dollar signs on either side of your text. For example, using our example from the previous paragraph, <code>$$y = \alpha + \beta\times x$$</code> will render as <span class="math display">\[y = \alpha + \beta\times x\]</span></p>
+<p>If you want to write a displayed equation, which renders on it’s own line (and centered), you use 2 dollar signs on either side of your text. For example, using our example from the previous paragraph, <code>$$y = \alpha + \beta\times x$$</code> will render as</p>
+<p><span class="math display">\[y = \alpha + \beta\times x\]</span></p>
 <p>This is helpful when we have more complicated equations that need be positioned prominently or need a little more space to be displayed properly.</p>
 </div>
 <div id="commonly-used-mathematical-expressions" class="section level2">
@@ -176,9 +177,11 @@
 </div>
 <div id="fractions" class="section level4">
 <h4>Fractions</h4>
-<p>Writing fractions is also pretty straight forward. We just use <code>$\frac{}{}</code> Where whatever we put in between the first set of brackets ends up in the numerator while the stuff we put in the second bracket goes to the denominator.</p>
+<p>Writing fractions is also pretty straight forward. We just use <code>$\frac{}{}$</code> Where whatever we put in between the first set of brackets ends up in the numerator while the stuff we put in the second bracket goes to the denominator.</p>
 <p>For example</p>
-<pre><code>$$\frac{(a + b)^2}{b^2}$$</code></pre>
+<pre><code>
+$$\frac{(a + b)^2}{b^2}$$
+</code></pre>
 <p>will render as:</p>
 <p><span class="math display">\[\frac{(a + b)^2}{b^2}\]</span></p>
 <p>You may often have fractions within fractions:</p>
